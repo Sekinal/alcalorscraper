@@ -56,6 +56,10 @@ class Config:
     BACKFILL_START_DATE: Optional[str] = os.getenv("BACKFILL_START_DATE")
     BACKFILL_BATCH_SIZE: int = int(os.getenv("BACKFILL_BATCH_SIZE", "7"))
 
+    # Re-scrape recent days to catch late-published articles
+    # When running --today, also re-scrape the last N days
+    RESCRAPE_DAYS: int = int(os.getenv("RESCRAPE_DAYS", "3"))
+
     # Encoding
     SITE_ENCODING: str = "iso-8859-1"
     OUTPUT_ENCODING: str = "utf-8"

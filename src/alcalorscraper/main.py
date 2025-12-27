@@ -5,7 +5,7 @@ Command-line interface for Alcalorpolitico scraper.
 import asyncio
 import argparse
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from .scraper import AlcalorPoliticoScraper
 from .logger import logger
@@ -150,9 +150,22 @@ async def main():
                 save_json=save_json,
             ) as scraper:
                 if args.today:
-                    date_str = datetime.now().strftime('%Y-%m-%d')
-                    logger.info(f"Scraping today's date: {date_str}")
-                    await scraper.scrape_date(date_str)
+                    # Scrape today plus the last N days to catch late-published articles
+                    today = datetime.now()
+                    rescrape_days = Config.RESCRAPE_DAYS
+
+                    if rescrape_days > 0:
+                        start_date = today - timedelta(days=rescrape_days)
+                        logger.info(f"Scraping today + last {rescrape_days} days to catch late articles")
+                        logger.info(f"Date range: {start_date.strftime('%Y-%m-%d')} to {today.strftime('%Y-%m-%d')}")
+                        await scraper.scrape_date_range(
+                            start_date.strftime('%Y-%m-%d'),
+                            today.strftime('%Y-%m-%d')
+                        )
+                    else:
+                        date_str = today.strftime('%Y-%m-%d')
+                        logger.info(f"Scraping today's date: {date_str}")
+                        await scraper.scrape_date(date_str)
 
                 elif args.date:
                     logger.info(f"Scraping single date: {args.date}")
