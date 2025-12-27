@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Data (keep structure, ignore content)
+data/articles/*.json
+data/metadata/*.json
+data/logs/*.log
+!data/articles/.gitkeep
+!data/metadata/.gitkeep
+!data/logs/.gitkeep
+
+# Legacy root-level data files
+articles_full_content.json
+
+# Docker
+.docker/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# UV
+.uv/
