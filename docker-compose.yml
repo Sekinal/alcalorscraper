@@ -1,0 +1,72 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: news_postgres
+    environment:
+      POSTGRES_DB: news_scrapers
+      POSTGRES_USER: ${POSTGRES_USER:-scraper}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-scraper} -d news_scrapers"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - scraper_network
+
+  # Scraper Service (for manual/one-off runs)
+  scraper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: alcalor_scraper
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-scraper}:${POSTGRES_PASSWORD}@postgres:5432/news_scrapers
+      PROXY_URL: ${PROXY_URL:-}
+      PROXY_USERNAME: ${PROXY_USERNAME:-}
+      PROXY_PASSWORD: ${PROXY_PASSWORD:-}
+      REQUEST_DELAY: ${REQUEST_DELAY:-1.5}
+      REQUEST_TIMEOUT: ${REQUEST_TIMEOUT:-30}
+      MAX_RETRIES: ${MAX_RETRIES:-3}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      OUTPUT_DIR: /app/data
+    volumes:
+      - ./data:/app/data
+    restart: "no"
+    networks:
+      - scraper_network
+
+  # Ofelia Scheduler (for automated cron jobs)
+  scheduler:
+    image: mcuadros/ofelia:latest
+    container_name: news_scheduler
+    depends_on:
+      - scraper
+    command: daemon --docker
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./docker/ofelia.ini:/etc/ofelia/config.ini:ro
+    labels:
+      ofelia.enabled: "true"
+    restart: unless-stopped
+    networks:
+      - scraper_network
+
+volumes:
+  postgres_data:
+    name: news_scrapers_postgres_data
+
+networks:
+  scraper_network:
+    name: news_scrapers_network
